@@ -13,6 +13,8 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
+import { scheduleReminder, cancelReminder } from '../utils/notifications';
+
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface Reminder {
@@ -20,6 +22,7 @@ interface Reminder {
     time: string;
     isEnabled: boolean;
     days: string;
+    notificationId?: string;
 }
 
 interface SmartRemindersModalProps {
@@ -71,12 +74,27 @@ export default function SmartRemindersModal({ visible, onClose, reminders, onUpd
         setEditingId(reminder.id);
     };
 
-    const handleSaveReminder = () => {
+    const handleSaveReminder = async () => {
         const newTime = formatTime(selectedHour, selectedMinute);
 
+        // Schedule notification
+        const notificationId = await scheduleReminder(
+            editingId || Date.now().toString(),
+            selectedHour,
+            selectedMinute
+        );
+
         if (editingId) {
+            // If editing, we should ideally cancel old one and schedule new one.
+            // But for now, let's assume scheduleReminder handles a new one.
+            // We need to find the old one to cancel it if it exists.
+            const oldReminder = reminders.find(r => r.id === editingId);
+            if (oldReminder?.notificationId) {
+                await cancelReminder(oldReminder.notificationId);
+            }
+
             const updated = reminders.map(r =>
-                r.id === editingId ? { ...r, time: newTime } : r
+                r.id === editingId ? { ...r, time: newTime, notificationId: notificationId || undefined } : r
             );
             onUpdateReminders(updated);
         } else {
@@ -84,7 +102,8 @@ export default function SmartRemindersModal({ visible, onClose, reminders, onUpd
                 id: Date.now().toString(),
                 time: newTime,
                 isEnabled: true,
-                days: 'Daily'
+                days: 'Daily',
+                notificationId: notificationId || undefined
             };
             onUpdateReminders([...reminders, newReminder]);
         }
@@ -93,14 +112,36 @@ export default function SmartRemindersModal({ visible, onClose, reminders, onUpd
         setEditingId(null);
     };
 
-    const handleDeleteReminder = (id: string) => {
+    const handleDeleteReminder = async (id: string) => {
+        const reminder = reminders.find(r => r.id === id);
+        if (reminder?.notificationId) {
+            await cancelReminder(reminder.notificationId);
+        }
         const updated = reminders.filter(r => r.id !== id);
         onUpdateReminders(updated);
     };
 
-    const handleToggleReminder = (id: string) => {
+    const handleToggleReminder = async (id: string) => {
+        const reminder = reminders.find(r => r.id === id);
+        if (!reminder) return;
+
+        let newNotificationId = reminder.notificationId;
+
+        if (reminder.isEnabled) {
+            // disabling
+            if (reminder.notificationId) {
+                await cancelReminder(reminder.notificationId);
+                newNotificationId = undefined;
+            }
+        } else {
+            // enabling
+            const [h, m] = reminder.time.split(':').map(Number);
+            const notifId = await scheduleReminder(id, h, m);
+            newNotificationId = notifId || undefined;
+        }
+
         const updated = reminders.map(r =>
-            r.id === id ? { ...r, isEnabled: !r.isEnabled } : r
+            r.id === id ? { ...r, isEnabled: !r.isEnabled, notificationId: newNotificationId } : r
         );
         onUpdateReminders(updated);
     };

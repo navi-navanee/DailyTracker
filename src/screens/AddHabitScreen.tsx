@@ -35,7 +35,7 @@ export default function AddHabitScreen({ navigation }: Props) {
   const [targetCount, setTargetCount] = useState(1);
 
   const [isRemindersVisible, setIsRemindersVisible] = useState(false);
-  const [reminders, setReminders] = useState<{ id: string, time: string, isEnabled: boolean, days: string }[]>([]);
+  const [reminders, setReminders] = useState<{ id: string, time: string, isEnabled: boolean, days: string, notificationId?: string }[]>([]);
 
   const [isCategoriesVisible, setIsCategoriesVisible] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);

@@ -8,6 +8,17 @@ import ChooseColorScreen from './src/screens/ChooseColorScreen';
 import { colors } from './src/theme/colors';
 
 import { RootStackParamList } from './src/types';
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
