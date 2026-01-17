@@ -8,13 +8,14 @@ import {
   Switch,
   ScrollView,
   SafeAreaView,
-  Platform,
   KeyboardAvoidingView,
   StatusBar
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { addHabit } from '../utils/storage';
+import SmartRemindersModal from '../components/SmartRemindersModal';
+import CategoryModal from '../components/CategoryModal';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -32,6 +33,12 @@ export default function AddHabitScreen({ navigation }: Props) {
 
   const [targetType, setTargetType] = useState<'daily' | 'weekly'>('daily');
   const [targetCount, setTargetCount] = useState(1);
+
+  const [isRemindersVisible, setIsRemindersVisible] = useState(false);
+  const [reminders, setReminders] = useState<{ id: string, time: string, isEnabled: boolean, days: string }[]>([]);
+
+  const [isCategoriesVisible, setIsCategoriesVisible] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const handleIconSelect = (selection: { icon: string; type: string }) => {
     setSelectedIcon(selection.icon);
@@ -63,6 +70,8 @@ export default function AddHabitScreen({ navigation }: Props) {
       hasTarget,
       targetType: hasTarget ? targetType : undefined,
       targetCount: hasTarget ? targetCount : undefined,
+      reminders,
+      categories: selectedCategories,
       completedDates: [],
       createdAt: new Date().toISOString(),
     };
@@ -110,7 +119,6 @@ export default function AddHabitScreen({ navigation }: Props) {
             ) : (
               <Text style={{ fontSize: 40 }}>{selectedIcon}</Text>
             )}
-            <Text style={styles.tapToChange}>Tap to change</Text>
           </TouchableOpacity>
           <Text style={styles.tapToChange}>Tap to change</Text>
         </View>
@@ -276,25 +284,38 @@ export default function AddHabitScreen({ navigation }: Props) {
         {/* Other Options */}
         {isAdvancedOpen && (
           <View>
-            <TouchableOpacity style={styles.listItem}>
+            <TouchableOpacity
+              style={styles.listItem}
+              onPress={() => setIsRemindersVisible(true)}
+            >
               <View style={styles.listItemLeft}>
                 <View style={[styles.listIconBox, { backgroundColor: '#2E3A2F' }]}>
                   <Ionicons name="notifications-outline" size={20} color={colors.primaryGreen} />
                 </View>
                 <View>
                   <Text style={styles.listItemTitle}>Reminders</Text>
-                  <Text style={styles.listItemSubtitle}>Stay on track with notifications</Text>
+                  <Text style={styles.listItemSubtitle}>
+                    {reminders.length > 0 ? `${reminders.length} reminders set` : 'Stay on track with notifications'}
+                  </Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.listItem}>
+            <TouchableOpacity
+              style={styles.listItem}
+              onPress={() => setIsCategoriesVisible(true)}
+            >
               <View style={styles.listItemLeft}>
                 <View style={[styles.listIconBox, { backgroundColor: '#2E3A2F' }]}>
                   <Ionicons name="folder-outline" size={20} color={colors.primaryGreen} />
                 </View>
-                <Text style={styles.listItemTitle}>Categories</Text>
+                <View>
+                  <Text style={styles.listItemTitle}>Categories</Text>
+                  <Text style={styles.listItemSubtitle}>
+                    {selectedCategories.length > 0 ? selectedCategories.join(', ') : 'Pick categories for your habit'}
+                  </Text>
+                </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
             </TouchableOpacity>
@@ -311,6 +332,20 @@ export default function AddHabitScreen({ navigation }: Props) {
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
+
+      <SmartRemindersModal
+        visible={isRemindersVisible}
+        onClose={() => setIsRemindersVisible(false)}
+        reminders={reminders}
+        onUpdateReminders={setReminders}
+      />
+
+      <CategoryModal
+        visible={isCategoriesVisible}
+        onClose={() => setIsCategoriesVisible(false)}
+        selectedCategories={selectedCategories}
+        onUpdateCategories={setSelectedCategories}
+      />
     </SafeAreaView>
   );
 }
