@@ -1,0 +1,176 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BottomNav displays the correct active tab style 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "bottom": 30,
+      "left": 0,
+      "position": "absolute",
+      "right": 0,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "backgroundColor": "#1C1C1E",
+        "borderColor": "#4ADE8040",
+        "borderRadius": 30,
+        "borderWidth": 1,
+        "elevation": 5,
+        "flexDirection": "row",
+        "padding": 5,
+        "shadowColor": "#4ADE80",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.2,
+        "shadowRadius": 4,
+      }
+    }
+  >
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#4ADE80",
+          "borderRadius": 25,
+          "height": 50,
+          "justifyContent": "center",
+          "opacity": 1,
+          "width": 60,
+        }
+      }
+      testID="tab-home"
+    >
+      <Ionicons
+        color="black"
+        name="time-outline"
+        size={24}
+      />
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "borderRadius": 25,
+          "height": 50,
+          "justifyContent": "center",
+          "opacity": 1,
+          "width": 60,
+        }
+      }
+      testID="tab-grid"
+    >
+      <Ionicons
+        color="#666"
+        name="grid-outline"
+        size={24}
+      />
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "borderRadius": 25,
+          "height": 50,
+          "justifyContent": "center",
+          "opacity": 1,
+          "width": 60,
+        }
+      }
+      testID="tab-menu"
+    >
+      <Ionicons
+        color="#666"
+        name="options-outline"
+        size={24}
+      />
+    </View>
+  </View>
+</View>
+`;
