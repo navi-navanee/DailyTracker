@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COMMON_CATEGORIES } from '../components/CategoryModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
+import { getLocalDateString } from '../utils/dateUtils';
+import { calculateStreak } from '../utils/streakUtils';
 import { getHabits, updateHabitInStorage, deleteHabitFromStorage } from '../utils/storage';
 import HabitItem from '../components/HabitItem';
 import CalendarStrip from '../components/CalendarStrip';
@@ -21,6 +23,7 @@ import BottomNav from '../components/BottomNav';
 
 import HabitGridItem from '../components/HabitGridItem';
 import HabitOptionsModal from '../components/HabitOptionsModal';
+import HabitDetailModal from '../components/HabitDetailModal';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Habit } from '../types';
@@ -37,6 +40,10 @@ export default function HomeScreen({ navigation }: Props) {
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [detailHabit, setDetailHabit] = useState<Habit | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
   const loadHabits = async () => {
     const loadedHabits = await getHabits();
     setHabits(loadedHabits.reverse());
@@ -52,21 +59,36 @@ export default function HomeScreen({ navigation }: Props) {
     const habitToUpdate = habits.find(h => h.id === id);
     if (!habitToUpdate) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString(new Date());
     const isCompletedToday = habitToUpdate.completedDates.some(date =>
       date.startsWith(today)
     );
 
     let newCompletedDates;
+    // We store ISO strings for compatibility, but we rely on the YYYY-MM-DD prefix for logic
+    // Actually, to be safe and consistent, let's store YYYY-MM-DD from now on for new entries?
+    // Or keep storing ISO but use local date string for the check.
+    // The previous code stored `new Date().toISOString()`.
+    // Let's store `getLocalDateString(new Date())` to be cleaner? 
+    // Wait, the interface says `completedDates: string[]`. 
+    // If I change format, old data might break if it expects ISO. 
+    // But `startsWith` logic works for both "2023-01-01" and "2023-01-01T..."
+    // Let's switch to storing simple YYYY-MM-DD strings for new completions to avoid timezone confusion permanently.
+
     if (isCompletedToday) {
       newCompletedDates = habitToUpdate.completedDates.filter(date =>
         !date.startsWith(today)
       );
     } else {
-      newCompletedDates = [...habitToUpdate.completedDates, new Date().toISOString()];
+      newCompletedDates = [...habitToUpdate.completedDates, today];
     }
 
-    const updatedHabit = { ...habitToUpdate, completedDates: newCompletedDates };
+    const newStreak = calculateStreak(newCompletedDates);
+    const updatedHabit = {
+      ...habitToUpdate,
+      completedDates: newCompletedDates,
+      streak: newStreak
+    };
 
     setHabits(prevHabits =>
       prevHabits.map(h => h.id === id ? updatedHabit : h)
@@ -154,6 +176,11 @@ export default function HomeScreen({ navigation }: Props) {
               onToggle={toggleHabit}
               onLongPress={() => handleDelete(item.id)}
               onMenuPress={handleOpenMenu}
+              onGridPress={(habit, date) => {
+                setDetailHabit(habit);
+                setSelectedDate(date || null);
+                setDetailModalVisible(true);
+              }}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -236,6 +263,41 @@ export default function HomeScreen({ navigation }: Props) {
         onEdit={handleEdit}
         onDelete={() => handleDelete()}
         position={menuPosition}
+      />
+
+      <HabitDetailModal
+        visible={detailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        habit={detailHabit}
+        initialDate={selectedDate ?? undefined}
+        onToggleDate={(habitId, date) => {
+          // Re-using toggle logic but for specific date
+          const habit = habits.find(h => h.id === habitId);
+          if (!habit) return;
+
+          // date here is already YYYY-MM-DD from modal
+          const isCompleted = habit.completedDates.some(d => d.startsWith(date));
+          let newCompletedDates;
+
+          if (isCompleted) {
+            newCompletedDates = habit.completedDates.filter(d => !d.startsWith(date));
+          } else {
+            newCompletedDates = [...habit.completedDates, date];
+          }
+
+          const newStreak = calculateStreak(newCompletedDates);
+          const updatedHabit = {
+            ...habit,
+            completedDates: newCompletedDates,
+            streak: newStreak
+          };
+
+          setHabits(prev => prev.map(h => h.id === habitId ? updatedHabit : h));
+          updateHabitInStorage(updatedHabit);
+
+          // Update the detailHabit as well so the modal refreshes
+          setDetailHabit(updatedHabit);
+        }}
       />
     </SafeAreaView>
   );

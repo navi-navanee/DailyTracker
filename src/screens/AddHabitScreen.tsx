@@ -198,77 +198,81 @@ export default function AddHabitScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        {/* Completion Target */}
-        <View style={styles.rowSection}>
-          <View>
-            <Text style={styles.rowLabel}>Completion Target</Text>
-            <Text style={styles.rowSubLabel}>Set a daily or weekly goal for this habit</Text>
-          </View>
-          <Switch
-            trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
-            thumbColor={colors.white}
-            onValueChange={setHasTarget}
-            value={hasTarget}
-          />
-        </View>
-
-        {hasTarget && (
-          <View style={styles.targetSection}>
-            <View style={styles.targetTypeContainer}>
-              <TouchableOpacity
-                style={[styles.targetTypeCard, targetType === 'daily' && styles.activeTargetCard]}
-                onPress={() => setTargetType('daily')}
-              >
-                <View style={styles.targetCardHeader}>
-                  <Ionicons name="calendar-outline" size={18} color={targetType === 'daily' ? colors.primaryGreen : colors.text} />
-                  <Text style={styles.targetCardTitle}>Daily</Text>
-                  {targetType === 'daily' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
-                </View>
-                <Text style={styles.targetCardDesc}>Complete multiple times each day</Text>
-                <Text style={styles.targetCardExample}>e.g., Drink water 8x daily</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.targetTypeCard, targetType === 'weekly' && styles.activeTargetCard]}
-                onPress={() => setTargetType('weekly')}
-              >
-                <View style={styles.targetCardHeader}>
-                  <Ionicons name="calendar" size={18} color={targetType === 'weekly' ? colors.primaryGreen : colors.text} />
-                  <Text style={styles.targetCardTitle}>Weekly</Text>
-                  {targetType === 'weekly' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
-                </View>
-                <Text style={styles.targetCardDesc}>Complete certain days per week</Text>
-                <Text style={styles.targetCardExample}>e.g., Exercise 3x per week</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.counterContainer}>
+        {/* Completion Target - Only for Checkmark type */}
+        {habitType === 'checkmark' && (
+          <>
+            <View style={styles.rowSection}>
               <View>
-                <Text style={styles.counterTitle}>
-                  {targetType === 'daily' ? 'Times per day' : 'Days per week'}
-                </Text>
-                <Text style={styles.counterSubtitle}>
-                  {targetType === 'daily' ? 'How many times to complete daily' : 'How many days to complete weekly'}
-                </Text>
+                <Text style={styles.rowLabel}>Completion Target</Text>
+                <Text style={styles.rowSubLabel}>Set a daily or weekly goal for this habit</Text>
               </View>
-
-              <View style={styles.counterControls}>
-                <TouchableOpacity
-                  style={styles.counterButton}
-                  onPress={() => setTargetCount(Math.max(1, targetCount - 1))}
-                >
-                  <Ionicons name="remove" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={styles.counterValue}>{targetCount}</Text>
-                <TouchableOpacity
-                  style={[styles.counterButton, { backgroundColor: colors.primaryGreen }]} // Green + button
-                  onPress={() => setTargetCount(targetType === 'weekly' ? Math.min(7, targetCount + 1) : targetCount + 1)}
-                >
-                  <Ionicons name="add" size={24} color={colors.black} />
-                </TouchableOpacity>
-              </View>
+              <Switch
+                trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
+                thumbColor={colors.white}
+                onValueChange={setHasTarget}
+                value={hasTarget}
+              />
             </View>
-          </View>
+
+            {hasTarget && (
+              <View style={styles.targetSection}>
+                <View style={styles.targetTypeContainer}>
+                  <TouchableOpacity
+                    style={[styles.targetTypeCard, targetType === 'daily' && styles.activeTargetCard]}
+                    onPress={() => setTargetType('daily')}
+                  >
+                    <View style={styles.targetCardHeader}>
+                      <Ionicons name="calendar-outline" size={18} color={targetType === 'daily' ? colors.primaryGreen : colors.text} />
+                      <Text style={styles.targetCardTitle}>Daily</Text>
+                      {targetType === 'daily' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
+                    </View>
+                    <Text style={styles.targetCardDesc}>Complete multiple times each day</Text>
+                    <Text style={styles.targetCardExample}>e.g., Drink water 8x daily</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.targetTypeCard, targetType === 'weekly' && styles.activeTargetCard]}
+                    onPress={() => setTargetType('weekly')}
+                  >
+                    <View style={styles.targetCardHeader}>
+                      <Ionicons name="calendar" size={18} color={targetType === 'weekly' ? colors.primaryGreen : colors.text} />
+                      <Text style={styles.targetCardTitle}>Weekly</Text>
+                      {targetType === 'weekly' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
+                    </View>
+                    <Text style={styles.targetCardDesc}>Complete certain days per week</Text>
+                    <Text style={styles.targetCardExample}>e.g., Exercise 3x per week</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.counterContainer}>
+                  <View>
+                    <Text style={styles.counterTitle}>
+                      {targetType === 'daily' ? 'Times per day' : 'Days per week'}
+                    </Text>
+                    <Text style={styles.counterSubtitle}>
+                      {targetType === 'daily' ? 'How many times to complete daily' : 'How many days to complete weekly'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.counterControls}>
+                    <TouchableOpacity
+                      style={styles.counterButton}
+                      onPress={() => setTargetCount(Math.max(1, targetCount - 1))}
+                    >
+                      <Ionicons name="remove" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={styles.counterValue}>{targetCount}</Text>
+                    <TouchableOpacity
+                      style={[styles.counterButton, { backgroundColor: colors.primaryGreen }]} // Green + button
+                      onPress={() => setTargetCount(targetType === 'weekly' ? Math.min(7, targetCount + 1) : targetCount + 1)}
+                    >
+                      <Ionicons name="add" size={24} color={colors.black} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+          </>
         )}
 
         {/* Advanced Accordion Placeholder */}

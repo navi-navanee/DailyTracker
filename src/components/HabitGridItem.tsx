@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
-
+import { getLocalDateString } from '../utils/dateUtils';
 import { Habit } from '../types';
 
 
@@ -15,41 +15,50 @@ interface HabitGridItemProps {
 // Define extended props type
 interface HabitGridItemExtendedProps extends HabitGridItemProps {
   onMenuPress?: (habit: Habit, position: { x: number, y: number }) => void;
+  onGridPress?: (habit: Habit, date?: string) => void;
 }
 
-export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress }: HabitGridItemExtendedProps) {
+export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress, onGridPress }: HabitGridItemExtendedProps) {
   const moreRef = React.useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
 
+  // Generate last 20 weeks of data
+  const weeks = React.useMemo(() => {
+    const result = [];
 
+    // We want 20 weeks ending with the current week (Sunday)
+    // Find the Monday of the current week (or future Monday if today is Sunday??)
+    // Actually standard is Mon-Sun
+    const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
+    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const currentWeekMonday = new Date(today);
+    currentWeekMonday.setDate(today.getDate() + diffToMonday);
 
-  // Get days in current month
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    // We want 20 weeks ending with the current week
+    for (let w = 0; w < 20; w++) {
+      const weekDates = [];
+      const mondayOfThisWeek = new Date(currentWeekMonday);
+      mondayOfThisWeek.setDate(currentWeekMonday.getDate() - (19 - w) * 7);
 
-  const todayStr = today.toISOString().split('T')[0];
-  const isCompletedToday = habit.completedDates.some(date =>
-    date.startsWith(todayStr)
-  );
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(mondayOfThisWeek);
+        date.setDate(mondayOfThisWeek.getDate() + d);
+        weekDates.push(getLocalDateString(date)); // Use local YYYY-MM-DD
+      }
+      result.push(weekDates);
+    }
+    return result;
+  }, []);
 
-  const isDateCompleted = (day: number) => {
-    // Construct date string YYYY-MM-DD
-    // Note: Month is 0-indexed in JS Date, but we need 01-12 for string
-    const monthStr = (currentMonth + 1).toString().padStart(2, '0');
-    const dayStr = day.toString().padStart(2, '0');
-    const dateToCheck = `${currentYear}-${monthStr}-${dayStr}`;
-
-    return habit.completedDates.some(completedDate =>
-      completedDate.startsWith(dateToCheck)
-    );
+  const isCompleted = (dateStr: string) => {
+    return habit.completedDates.some(d => d.startsWith(dateStr));
   };
+
+  const todayStr = getLocalDateString(today);
+  const isCompletedToday = isCompleted(todayStr);
 
   return (
     <View style={[styles.container, { borderColor: habit.color || '#333' }]}>
-
-
 
       <View style={styles.header}>
         <View style={styles.titleInfo}>
@@ -99,19 +108,29 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
         </View>
       </View>
 
-      <View style={styles.gridContainer}>
-        {days.map(day => {
-          const completed = isDateCompleted(day);
-          return (
-            <View
-              key={day}
-              style={[
-                styles.gridBox,
-                completed && { backgroundColor: habit.color || colors.primary }
-              ]}
-            />
-          );
-        })}
+      {/* Heatmap Grid: Columns of Weeks */}
+      {/* Heatmap Grid: Columns of Weeks */}
+      <View style={styles.heatmapContainer}>
+        {weeks.map((week, wIndex) => (
+          <View key={wIndex} style={styles.weekColumn}>
+            {week.map((dateStr, dIndex) => {
+              const completed = isCompleted(dateStr);
+              return (
+                <TouchableOpacity
+                  key={dateStr}
+                  activeOpacity={0.7}
+                  onPress={() => onGridPress && onGridPress(habit, dateStr)}
+                  style={[
+                    styles.dayBox,
+                    completed && { backgroundColor: habit.color || colors.primary },
+                    // Highlight today ?
+                    dateStr === todayStr && !completed && { borderWidth: 1, borderColor: '#555' }
+                  ]}
+                />
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -126,7 +145,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
-
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -177,16 +195,22 @@ const styles = StyleSheet.create({
   moreBtn: {
     padding: 4,
   },
-  gridContainer: {
+  heatmapContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4, // React Native 0.71+ supports gap
+    // Screenshot has "Sun Mon Tue..." and grid. It looks like standard contribution graph: Left (past) -> Right (Today).
+    // Just flex-start is fine if we start 20 weeks ago.
+    justifyContent: 'space-between',
+    // We need to fit 20 weeks. 
+    // Screen width ~375. 20 columns. 375/20 = ~18px per column.
+    // Each box ~12px? + Gap 2px.
   },
-  gridBox: {
-    width: 14, // Roughly calculated for ~30 items in width
-    height: 24, // Taller boxes as per screenshot
-    borderRadius: 4,
+  weekColumn: {
+    gap: 3,
+  },
+  dayBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
     backgroundColor: '#2C2C2E',
-    // margin: 2, // usage of gap above
   },
 });
