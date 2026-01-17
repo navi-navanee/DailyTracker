@@ -11,7 +11,13 @@ interface HabitGridItemProps {
   onLongPress: (id: string) => void;
 }
 
-export default function HabitGridItem({ habit, onToggle, onLongPress }: HabitGridItemProps) {
+// Define extended props type
+interface HabitGridItemExtendedProps extends HabitGridItemProps {
+  onMenuPress?: (habit: Habit, position: { x: number, y: number }) => void;
+}
+
+export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress }: HabitGridItemExtendedProps) {
+  const moreRef = React.useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
@@ -69,7 +75,19 @@ export default function HabitGridItem({ habit, onToggle, onLongPress }: HabitGri
           >
             <MaterialCommunityIcons name="check" size={20} color={isCompletedToday ? colors.black : colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.moreBtn} onPress={() => onLongPress && onLongPress(habit.id)}>
+          <TouchableOpacity
+            ref={moreRef}
+            style={styles.moreBtn}
+            onPress={() => {
+              moreRef.current?.measureInWindow((x, y, width, height) => {
+                if (onMenuPress) {
+                  onMenuPress(habit, { x, y: y + height });
+                } else if (onLongPress) {
+                  onLongPress(habit.id);
+                }
+              });
+            }}
+          >
             <MaterialCommunityIcons name="dots-vertical" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>

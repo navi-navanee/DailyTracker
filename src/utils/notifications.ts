@@ -41,6 +41,7 @@ export async function scheduleReminder(id: string, hour: number, minute: number)
       body: 'Stay consistent with your goals.',
     },
     trigger: {
+      type: 'daily',
       hour: hour,
       minute: minute,
       repeats: true,

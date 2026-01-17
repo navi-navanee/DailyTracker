@@ -77,29 +77,44 @@ export default function SmartRemindersModal({ visible, onClose, reminders, onUpd
     const handleSaveReminder = async () => {
         const newTime = formatTime(selectedHour, selectedMinute);
 
-        // Schedule notification
-        const notificationId = await scheduleReminder(
-            editingId || Date.now().toString(),
-            selectedHour,
-            selectedMinute
-        );
+        // Generate ID once if adding
+        const idToUse = editingId || Date.now().toString();
+
+        let notificationId: string | undefined | null;
+        try {
+            console.log('Attempting to schedule reminder for', idToUse, selectedHour, selectedMinute);
+            // Schedule notification
+            notificationId = await scheduleReminder(
+                idToUse,
+                selectedHour,
+                selectedMinute
+            );
+            console.log('Scheduled notification:', notificationId);
+        } catch (error) {
+            console.error('Failed to schedule reminder:', error);
+            // Don't block saving if notification fails, just log it
+        }
 
         if (editingId) {
-            // If editing, we should ideally cancel old one and schedule new one.
-            // But for now, let's assume scheduleReminder handles a new one.
-            // We need to find the old one to cancel it if it exists.
+            // ... existing edit logic ...
+            // We need to find the old one to cancel it if it exists and we have a new one (or if we just want to update)
             const oldReminder = reminders.find(r => r.id === editingId);
-            if (oldReminder?.notificationId) {
-                await cancelReminder(oldReminder.notificationId);
+            if (oldReminder?.notificationId && notificationId) {
+                // Determine if we need to cancel the old one?
+                // scheduleReminder creates a NEW notification. 
+                // We should definitely cancel the old one if we got a new one.
+                try {
+                    await cancelReminder(oldReminder.notificationId);
+                } catch (e) { console.log('Error canceling old reminder', e); }
             }
 
             const updated = reminders.map(r =>
-                r.id === editingId ? { ...r, time: newTime, notificationId: notificationId || undefined } : r
+                r.id === editingId ? { ...r, time: newTime, notificationId: notificationId || r.notificationId } : r
             );
             onUpdateReminders(updated);
         } else {
             const newReminder: Reminder = {
-                id: Date.now().toString(),
+                id: idToUse,
                 time: newTime,
                 isEnabled: true,
                 days: 'Daily',

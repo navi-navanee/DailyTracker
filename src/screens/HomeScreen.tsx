@@ -17,6 +17,7 @@ import CalendarStrip from '../components/CalendarStrip';
 import BottomNav from '../components/BottomNav';
 
 import HabitGridItem from '../components/HabitGridItem';
+import HabitOptionsModal from '../components/HabitOptionsModal';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Habit } from '../types';
@@ -25,7 +26,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [activeTab, setActiveTab] = useState('Grid'); // Default to Grid based on screenshot flow
+  /* ... existing code ... */
+  const [activeTab, setActiveTab] = useState('Grid');
+
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
   const loadHabits = async () => {
     const loadedHabits = await getHabits();
@@ -65,7 +71,25 @@ export default function HomeScreen({ navigation }: Props) {
     await updateHabitInStorage(updatedHabit);
   };
 
-  const handleDelete = (id: string) => {
+  const handleOpenMenu = (habit: Habit, position: { x: number, y: number }) => {
+    setSelectedHabitId(habit.id);
+    setMenuPosition(position);
+    setMenuVisible(true);
+  };
+
+  const handleEdit = () => {
+    setMenuVisible(false);
+    if (!selectedHabitId) return;
+    const habit = habits.find(h => h.id === selectedHabitId);
+    if (habit) {
+      navigation.navigate('AddHabit', { habit });
+    }
+  };
+
+  const handleDelete = (id: string = selectedHabitId!) => {
+    setMenuVisible(false); // Close menu if open
+    if (!id) return;
+
     Alert.alert(
       "Delete Habit",
       "Are you sure you want to delete this habit?",
@@ -77,6 +101,7 @@ export default function HomeScreen({ navigation }: Props) {
           onPress: async () => {
             const newHabits = await deleteHabitFromStorage(id);
             setHabits(newHabits.reverse());
+            setSelectedHabitId(null);
           }
         }
       ]
@@ -108,7 +133,8 @@ export default function HomeScreen({ navigation }: Props) {
             <HabitGridItem
               habit={item}
               onToggle={toggleHabit}
-              onLongPress={handleDelete}
+              onLongPress={() => handleDelete(item.id)}
+              onMenuPress={handleOpenMenu}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -125,7 +151,7 @@ export default function HomeScreen({ navigation }: Props) {
           <HabitItem
             habit={item}
             onToggle={toggleHabit}
-            onLongPress={handleDelete}
+            onLongPress={() => handleDelete(item.id)}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -142,7 +168,6 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.content}>
         {renderContent()}
 
-        {/* Floating button mostly for 'Home' or 'Grid' if not empty */}
         {habits.length > 0 && (
           <TouchableOpacity
             style={styles.floatingButton}
@@ -154,6 +179,14 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
 
       <BottomNav activeTab={activeTab} onTabPress={setActiveTab} />
+
+      <HabitOptionsModal
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onEdit={handleEdit}
+        onDelete={() => handleDelete()}
+        position={menuPosition}
+      />
     </SafeAreaView>
   );
 }

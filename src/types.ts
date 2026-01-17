@@ -9,11 +9,15 @@ export interface Habit {
   hasTarget?: boolean;
   completedDates: string[];
   createdAt?: string;
+  reminders?: { id: string, time: string, isEnabled: boolean, days: string, notificationId?: string }[];
+  categories?: string[];
+  targetType?: 'daily' | 'weekly';
+  targetCount?: number;
 }
 
 export type RootStackParamList = {
   Home: undefined;
-  AddHabit: undefined;
+  AddHabit: { habit?: Habit } | undefined;
   ChooseIcon: {
     currentIcon: string;
     currentType: string;

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
-import { addHabit } from '../utils/storage';
+import { addHabit, updateHabitInStorage } from '../utils/storage';
 import SmartRemindersModal from '../components/SmartRemindersModal';
 import CategoryModal from '../components/CategoryModal';
 
@@ -22,23 +22,27 @@ import { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddHabit'>;
 
-export default function AddHabitScreen({ navigation }: Props) {
-  const [habitName, setHabitName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(colors.palette[1]); // Default to Orange
-  const [habitType, setHabitType] = useState('checkmark'); // 'checkmark' or 'time'
-  const [hasTarget, setHasTarget] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState('dumbbell');
-  const [iconType, setIconType] = useState('icon'); // 'icon' | 'emoji'
+export default function AddHabitScreen({ navigation, route }: Props) {
+  const existingHabit = route.params?.habit;
+
+  const [habitName, setHabitName] = useState(existingHabit?.name || '');
+  const [selectedColor, setSelectedColor] = useState(existingHabit?.color || colors.palette[1]);
+  const [habitType, setHabitType] = useState(existingHabit?.type || 'checkmark');
+  const [hasTarget, setHasTarget] = useState(existingHabit?.hasTarget || false);
+  const [selectedIcon, setSelectedIcon] = useState(existingHabit?.icon || 'dumbbell');
+  const [iconType, setIconType] = useState(existingHabit?.iconType || 'icon');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
-  const [targetType, setTargetType] = useState<'daily' | 'weekly'>('daily');
-  const [targetCount, setTargetCount] = useState(1);
+  const [targetType, setTargetType] = useState<'daily' | 'weekly'>(existingHabit?.targetType as any || 'daily');
+  const [targetCount, setTargetCount] = useState(existingHabit?.targetCount || 1);
 
   const [isRemindersVisible, setIsRemindersVisible] = useState(false);
-  const [reminders, setReminders] = useState<{ id: string, time: string, isEnabled: boolean, days: string, notificationId?: string }[]>([]);
+  const [reminders, setReminders] = useState<{ id: string, time: string, isEnabled: boolean, days: string, notificationId?: string }[]>(existingHabit?.reminders || []);
 
   const [isCategoriesVisible, setIsCategoriesVisible] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(existingHabit?.categories || []);
+
+  /* ... */
 
   const handleIconSelect = (selection: { icon: string; type: string }) => {
     setSelectedIcon(selection.icon);
@@ -55,28 +59,31 @@ export default function AddHabitScreen({ navigation }: Props) {
 
   const handleSave = async () => {
     if (!habitName.trim()) {
-      // In a real app we might show a toast or inline error, 
-      // but for now keeping it simple as per design focus
       return;
     }
 
     const newHabit = {
-      id: Date.now().toString(),
+      id: existingHabit?.id || Date.now().toString(),
       name: habitName.trim(),
       color: selectedColor,
       icon: selectedIcon,
-      iconType, // Save the type
+      iconType,
       type: habitType,
       hasTarget,
       targetType: hasTarget ? targetType : undefined,
       targetCount: hasTarget ? targetCount : undefined,
       reminders,
       categories: selectedCategories,
-      completedDates: [],
-      createdAt: new Date().toISOString(),
+      completedDates: existingHabit?.completedDates || [],
+      createdAt: existingHabit?.createdAt || new Date().toISOString(),
+      streak: existingHabit?.streak || 0,
     };
 
-    await addHabit(newHabit);
+    if (existingHabit) {
+      await updateHabitInStorage(newHabit);
+    } else {
+      await addHabit(newHabit);
+    }
     navigation.goBack();
   };
 
@@ -105,7 +112,7 @@ export default function AddHabitScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Habit</Text>
+        <Text style={styles.headerTitle}>{existingHabit ? 'Edit Habit' : 'New Habit'}</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -151,7 +158,7 @@ export default function AddHabitScreen({ navigation }: Props) {
                 style={styles.addColorButton}
                 onPress={() => navigation.navigate('ChooseColor', {
                   currentColor: selectedColor,
-                  onSelect: (color) => setSelectedColor(color)
+                  onSelect: (color: string) => setSelectedColor(color)
                 })}
               >
                 <Text style={styles.addColorText}>+30 {'>'}</Text>
