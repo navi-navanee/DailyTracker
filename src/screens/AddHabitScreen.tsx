@@ -30,6 +30,9 @@ export default function AddHabitScreen({ navigation }: Props) {
   const [iconType, setIconType] = useState('icon'); // 'icon' | 'emoji'
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
+  const [targetType, setTargetType] = useState<'daily' | 'weekly'>('daily');
+  const [targetCount, setTargetCount] = useState(1);
+
   const handleIconSelect = (selection: { icon: string; type: string }) => {
     setSelectedIcon(selection.icon);
     setIconType(selection.type);
@@ -58,6 +61,8 @@ export default function AddHabitScreen({ navigation }: Props) {
       iconType, // Save the type
       type: habitType,
       hasTarget,
+      targetType: hasTarget ? targetType : undefined,
+      targetCount: hasTarget ? targetCount : undefined,
       completedDates: [],
       createdAt: new Date().toISOString(),
     };
@@ -191,6 +196,65 @@ export default function AddHabitScreen({ navigation }: Props) {
             value={hasTarget}
           />
         </View>
+
+        {hasTarget && (
+          <View style={styles.targetSection}>
+            <View style={styles.targetTypeContainer}>
+              <TouchableOpacity
+                style={[styles.targetTypeCard, targetType === 'daily' && styles.activeTargetCard]}
+                onPress={() => setTargetType('daily')}
+              >
+                <View style={styles.targetCardHeader}>
+                  <Ionicons name="calendar-outline" size={18} color={targetType === 'daily' ? colors.primaryGreen : colors.text} />
+                  <Text style={styles.targetCardTitle}>Daily</Text>
+                  {targetType === 'daily' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
+                </View>
+                <Text style={styles.targetCardDesc}>Complete multiple times each day</Text>
+                <Text style={styles.targetCardExample}>e.g., Drink water 8x daily</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.targetTypeCard, targetType === 'weekly' && styles.activeTargetCard]}
+                onPress={() => setTargetType('weekly')}
+              >
+                <View style={styles.targetCardHeader}>
+                  <Ionicons name="calendar" size={18} color={targetType === 'weekly' ? colors.primaryGreen : colors.text} />
+                  <Text style={styles.targetCardTitle}>Weekly</Text>
+                  {targetType === 'weekly' && <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} style={{ marginLeft: 'auto' }} />}
+                </View>
+                <Text style={styles.targetCardDesc}>Complete certain days per week</Text>
+                <Text style={styles.targetCardExample}>e.g., Exercise 3x per week</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.counterContainer}>
+              <View>
+                <Text style={styles.counterTitle}>
+                  {targetType === 'daily' ? 'Times per day' : 'Days per week'}
+                </Text>
+                <Text style={styles.counterSubtitle}>
+                  {targetType === 'daily' ? 'How many times to complete daily' : 'How many days to complete weekly'}
+                </Text>
+              </View>
+
+              <View style={styles.counterControls}>
+                <TouchableOpacity
+                  style={styles.counterButton}
+                  onPress={() => setTargetCount(Math.max(1, targetCount - 1))}
+                >
+                  <Ionicons name="remove" size={24} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={styles.counterValue}>{targetCount}</Text>
+                <TouchableOpacity
+                  style={[styles.counterButton, { backgroundColor: colors.primaryGreen }]} // Green + button
+                  onPress={() => setTargetCount(targetType === 'weekly' ? Math.min(7, targetCount + 1) : targetCount + 1)}
+                >
+                  <Ionicons name="add" size={24} color={colors.black} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Advanced Accordion Placeholder */}
         <View style={styles.advancedSection}>
@@ -485,5 +549,90 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  targetSection: {
+    marginTop: -15, // Pull close to toggle
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 16,
+    marginBottom: 25,
+  },
+  targetTypeContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  targetTypeCard: {
+    flex: 1,
+    backgroundColor: '#1E1E1E',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  activeTargetCard: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: 'rgba(74, 222, 128, 0.05)',
+  },
+  targetCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  targetCardTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  targetCardDesc: {
+    color: colors.textGray,
+    fontSize: 12,
+    marginBottom: 6,
+    lineHeight: 16,
+  },
+  targetCardExample: {
+    color: colors.primaryGreen,
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1E1E1E',
+    padding: 16,
+    borderRadius: 12,
+  },
+  counterTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  counterSubtitle: {
+    color: colors.textGray,
+    fontSize: 12,
+  },
+  counterControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  counterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#2A2A2A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  counterValue: {
+    color: colors.primaryGreen, // Green count
+    fontSize: 20,
+    fontWeight: 'bold',
+    minWidth: 20,
+    textAlign: 'center',
   },
 });
