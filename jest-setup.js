@@ -10,3 +10,12 @@ jest.mock('@expo/vector-icons', () => ({
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
+
+// Mock expo-notifications
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  scheduleNotificationAsync: jest.fn(),
+  cancelScheduledNotificationAsync: jest.fn(),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+}));

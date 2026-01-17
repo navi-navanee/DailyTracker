@@ -7,8 +7,11 @@ import {
   SafeAreaView,
   StatusBar,
   FlatList,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { COMMON_CATEGORIES } from '../components/CategoryModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { getHabits, updateHabitInStorage, deleteHabitFromStorage } from '../utils/storage';
@@ -27,7 +30,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const [habits, setHabits] = useState<Habit[]>([]);
   /* ... existing code ... */
-  const [activeTab, setActiveTab] = useState('Grid');
+  const [activeTab, setActiveTab] = useState('Grid'); // Default to Grid based on screenshot flow
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
@@ -109,6 +113,11 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const renderContent = () => {
+    // Filter habits based on selected category
+    const filteredHabits = selectedCategory
+      ? habits.filter(h => h.categories && h.categories.includes(selectedCategory))
+      : habits;
+
     if (habits.length === 0) {
       return (
         <View style={styles.emptyState}>
@@ -127,7 +136,7 @@ export default function HomeScreen({ navigation }: Props) {
     if (activeTab === 'Grid') {
       return (
         <FlatList
-          data={habits}
+          data={filteredHabits}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <HabitGridItem
@@ -145,7 +154,7 @@ export default function HomeScreen({ navigation }: Props) {
     // Default 'Home' view or other tabs
     return (
       <FlatList
-        data={habits}
+        data={filteredHabits}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <HabitItem
@@ -164,6 +173,34 @@ export default function HomeScreen({ navigation }: Props) {
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <CalendarStrip />
+
+      {/* Category Filter */}
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContent}
+        >
+          {/* 'All' or default option could be added if needed, or just let users deselect */}
+          {/* Reviewing the screenshot, user had 'Finances', 'Fitness'. Let's show unique categories from habits */}
+          {[...new Set(habits.flatMap(h => h.categories || []))].map((cat, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.filterChip, selectedCategory === cat && styles.activeFilterChip]}
+              onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+            >
+              <Ionicons
+                name={COMMON_CATEGORIES.find(c => c.name === cat)?.icon as any || 'pricetag-outline'}
+                size={14}
+                color={selectedCategory === cat ? colors.primaryGreen : colors.textSecondary}
+              />
+              <Text style={[styles.filterText, selectedCategory === cat && styles.activeFilterText]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       <View style={styles.content}>
         {renderContent()}
@@ -259,5 +296,36 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     marginTop: -2,
+  },
+  filterContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 6, // Reduced margin
+  },
+  filterContent: {
+    gap: 10,
+    paddingRight: 20,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12, // More rounded like pill
+    borderWidth: 1,
+    borderColor: '#3A3A3C',
+    gap: 6,
+  },
+  activeFilterChip: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: 'rgba(74, 222, 128, 0.1)', // Light green tint
+  },
+  filterText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  activeFilterText: {
+    color: colors.primaryGreen, // Green text when active
   },
 });

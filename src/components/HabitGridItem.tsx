@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 import { Habit } from '../types';
+
 
 interface HabitGridItemProps {
   habit: Habit;
@@ -21,6 +22,8 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+
+
 
   // Get days in current month
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -45,6 +48,9 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
 
   return (
     <View style={styles.container}>
+
+
+
       <View style={styles.header}>
         <View style={styles.titleInfo}>
           <View style={[styles.iconContainer, { backgroundColor: (habit.color || colors.primary) + '20' }]}>
@@ -120,6 +126,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

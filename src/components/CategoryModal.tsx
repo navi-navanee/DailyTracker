@@ -22,7 +22,7 @@ interface CategoryModalProps {
     onUpdateCategories: (categories: string[]) => void;
 }
 
-const COMMON_CATEGORIES = [
+export const COMMON_CATEGORIES = [
     { id: 'art', name: 'Art', icon: 'palette-outline' },
     { id: 'finances', name: 'Finances', icon: 'cash-outline' },
     { id: 'fitness', name: 'Fitness', icon: 'barbell-outline' },
