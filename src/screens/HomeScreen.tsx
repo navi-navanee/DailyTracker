@@ -31,7 +31,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [habits, setHabits] = useState<Habit[]>([]);
   /* ... existing code ... */
   const [activeTab, setActiveTab] = useState('Grid'); // Default to Grid based on screenshot flow
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
@@ -112,10 +112,20 @@ export default function HomeScreen({ navigation }: Props) {
     );
   };
 
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(cat)) {
+        return prev.filter(c => c !== cat);
+      } else {
+        return [...prev, cat];
+      }
+    });
+  };
+
   const renderContent = () => {
-    // Filter habits based on selected category
-    const filteredHabits = selectedCategory
-      ? habits.filter(h => h.categories && h.categories.includes(selectedCategory))
+    // Filter habits based on selected categories
+    const filteredHabits = selectedCategories.length > 0
+      ? habits.filter(h => h.categories && h.categories.some(c => selectedCategories.includes(c)))
       : habits;
 
     if (habits.length === 0) {
@@ -183,22 +193,25 @@ export default function HomeScreen({ navigation }: Props) {
         >
           {/* 'All' or default option could be added if needed, or just let users deselect */}
           {/* Reviewing the screenshot, user had 'Finances', 'Fitness'. Let's show unique categories from habits */}
-          {[...new Set(habits.flatMap(h => h.categories || []))].map((cat, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.filterChip, selectedCategory === cat && styles.activeFilterChip]}
-              onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-            >
-              <Ionicons
-                name={COMMON_CATEGORIES.find(c => c.name === cat)?.icon as any || 'pricetag-outline'}
-                size={14}
-                color={selectedCategory === cat ? colors.primaryGreen : colors.textSecondary}
-              />
-              <Text style={[styles.filterText, selectedCategory === cat && styles.activeFilterText]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {[...new Set(habits.flatMap(h => h.categories || []))].map((cat, index) => {
+            const isSelected = selectedCategories.includes(cat);
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[styles.filterChip, isSelected && styles.activeFilterChip]}
+                onPress={() => toggleCategory(cat)}
+              >
+                <Ionicons
+                  name={COMMON_CATEGORIES.find(c => c.name === cat)?.icon as any || 'pricetag-outline'}
+                  size={14}
+                  color={isSelected ? colors.primaryGreen : colors.textSecondary}
+                />
+                <Text style={[styles.filterText, isSelected && styles.activeFilterText]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
