@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -20,35 +20,52 @@ interface HabitGridItemExtendedProps extends HabitGridItemProps {
 
 export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress, onGridPress }: HabitGridItemExtendedProps) {
   const moreRef = React.useRef<React.ElementRef<typeof TouchableOpacity>>(null);
+  const scrollViewRef = React.useRef<ScrollView>(null);
   const today = new Date();
 
-  // Generate last 20 weeks of data
+  // Generate date range based on history
   const weeks = React.useMemo(() => {
+    // Find earliest completion date
+    let earliestDate = new Date();
+    if (habit.completedDates && habit.completedDates.length > 0) {
+      habit.completedDates.forEach(d => {
+        const date = new Date(d);
+        if (date < earliestDate) earliestDate = date;
+      });
+    }
+
+    // Default to at least 52 weeks (1 year) ago, or earlier if data exists
+    const minWeeks = 52;
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const weeksDiff = Math.ceil((today.getTime() - earliestDate.getTime()) / msPerWeek);
+    const totalWeeks = Math.max(minWeeks, weeksDiff + 1); // +1 buffer
+
     const result = [];
 
-    // We want 20 weeks ending with the current week (Sunday)
-    // Find the Monday of the current week (or future Monday if today is Sunday??)
-    // Actually standard is Mon-Sun
+    // Calculate the Monday of the current week (standard Mon-Sun)
     const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
     const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
     const currentWeekMonday = new Date(today);
     currentWeekMonday.setDate(today.getDate() + diffToMonday);
 
-    // We want 20 weeks ending with the current week
-    for (let w = 0; w < 20; w++) {
+    // Generate weeks from past to present
+    for (let w = 0; w < totalWeeks; w++) {
       const weekDates = [];
       const mondayOfThisWeek = new Date(currentWeekMonday);
-      mondayOfThisWeek.setDate(currentWeekMonday.getDate() - (19 - w) * 7);
+      // We go backwards from current week, but we want the array to be ordered Past -> Future ?
+      // No, usually we generate Past -> Future 
+      // Let's generate from (totalWeeks - 1) weeks ago up to 0 weeks ago
+      mondayOfThisWeek.setDate(currentWeekMonday.getDate() - (totalWeeks - 1 - w) * 7);
 
       for (let d = 0; d < 7; d++) {
         const date = new Date(mondayOfThisWeek);
         date.setDate(mondayOfThisWeek.getDate() + d);
-        weekDates.push(getLocalDateString(date)); // Use local YYYY-MM-DD
+        weekDates.push(getLocalDateString(date));
       }
       result.push(weekDates);
     }
     return result;
-  }, []);
+  }, [habit.completedDates]); // Re-calc when completedDates change
 
   const isCompleted = (dateStr: string) => {
     return habit.completedDates.some(d => d.startsWith(dateStr));
@@ -108,33 +125,41 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
         </View>
       </View>
 
-      {/* Heatmap Grid: Columns of Weeks */}
-      {/* Heatmap Grid: Columns of Weeks */}
-      <View style={styles.heatmapContainer}>
-        {weeks.map((week, wIndex) => (
-          <View key={wIndex} style={styles.weekColumn}>
-            {week.map((dateStr, dIndex) => {
-              const completed = isCompleted(dateStr);
-              return (
-                <TouchableOpacity
-                  key={dateStr}
-                  activeOpacity={0.7}
-                  onPress={() => onGridPress && onGridPress(habit, dateStr)}
-                  style={[
-                    styles.dayBox,
-                    completed && { backgroundColor: habit.color || colors.primary },
-                    // Highlight today ?
-                    dateStr === todayStr && !completed && { borderWidth: 1, borderColor: '#555' }
-                  ]}
-                />
-              );
-            })}
-          </View>
-        ))}
+      {/* Heatmap Grid: Scrollable Columns of Weeks */}
+      <View style={styles.heatmapWrapper}>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.heatmapContainer}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+        >
+          {weeks.map((week, wIndex) => (
+            <View key={wIndex} style={styles.weekColumn}>
+              {week.map((dateStr, dIndex) => {
+                const completed = isCompleted(dateStr);
+                return (
+                  <TouchableOpacity
+                    key={dateStr}
+                    activeOpacity={0.7}
+                    onPress={() => onGridPress && onGridPress(habit, dateStr)}
+                    style={[
+                      styles.dayBox,
+                      completed && { backgroundColor: habit.color || colors.primary },
+                      // Highlight today 
+                      dateStr === todayStr && !completed && { borderWidth: 1, borderColor: '#555' }
+                    ]}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </ScrollView>
       </View>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -195,17 +220,17 @@ const styles = StyleSheet.create({
   moreBtn: {
     padding: 4,
   },
+  heatmapWrapper: {
+    height: 110, // Approx height for grid + padding
+  },
   heatmapContainer: {
-    flexDirection: 'row',
-    // Screenshot has "Sun Mon Tue..." and grid. It looks like standard contribution graph: Left (past) -> Right (Today).
-    // Just flex-start is fine if we start 20 weeks ago.
-    justifyContent: 'space-between',
-    // We need to fit 20 weeks. 
-    // Screen width ~375. 20 columns. 375/20 = ~18px per column.
-    // Each box ~12px? + Gap 2px.
+    paddingRight: 10, // Adding padding to the right end
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   weekColumn: {
     gap: 3,
+    marginRight: 3, // Space between columns
   },
   dayBox: {
     width: 12,

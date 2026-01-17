@@ -15,6 +15,7 @@ interface HabitDetailModalProps {
 
 export default function HabitDetailModal({ visible, onClose, habit, onToggleDate, initialDate }: HabitDetailModalProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [showYearPicker, setShowYearPicker] = useState(false);
 
     React.useEffect(() => {
         if (visible) {
@@ -51,6 +52,14 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
 
     const handleNextMonth = () => {
         setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    };
+
+    const handlePrevYear = () => {
+        setCurrentDate(new Date(currentYear - 1, currentMonth, 1));
+    };
+
+    const handleNextYear = () => {
+        setCurrentDate(new Date(currentYear + 1, currentMonth, 1));
     };
 
     const isCompleted = (day: number) => {
@@ -133,24 +142,76 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
                     </View>
 
                     <View style={styles.calendarHeader}>
-                        <TouchableOpacity onPress={handlePrevMonth}>
-                            <Ionicons name="chevron-back" size={24} color={colors.text} />
+                        <View style={styles.navRow}>
+                            {!showYearPicker && (
+                                <>
+                                    <TouchableOpacity onPress={handlePrevYear} style={styles.navBtn}>
+                                        <MaterialCommunityIcons name="chevron-double-left" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={handlePrevMonth} style={styles.navBtn}>
+                                        <Ionicons name="chevron-back" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
+
+                        <TouchableOpacity onPress={() => setShowYearPicker(!showYearPicker)}>
+                            <Text style={styles.monthTitle}>
+                                {showYearPicker ? 'Select Year' : `${monthNames[currentMonth]} ${currentYear}`}
+                            </Text>
                         </TouchableOpacity>
-                        <Text style={styles.monthTitle}>{monthNames[currentMonth]} {currentYear}</Text>
-                        <TouchableOpacity onPress={handleNextMonth}>
-                            <Ionicons name="chevron-forward" size={24} color={colors.text} />
-                        </TouchableOpacity>
+
+                        <View style={styles.navRow}>
+                            {!showYearPicker && (
+                                <>
+                                    <TouchableOpacity onPress={handleNextMonth} style={styles.navBtn}>
+                                        <Ionicons name="chevron-forward" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={handleNextYear} style={styles.navBtn}>
+                                        <MaterialCommunityIcons name="chevron-double-right" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
                     </View>
 
-                    <View style={styles.weekHeaders}>
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                            <Text key={day} style={styles.weekHeaderText}>{day}</Text>
-                        ))}
-                    </View>
-
-                    <View style={styles.calendarGrid}>
-                        {renderCalendar()}
-                    </View>
+                    {showYearPicker ? (
+                        <View style={{ height: 300 }}>
+                            <ScrollView>
+                                <View style={styles.yearGrid}>
+                                    {Array.from({ length: 30 }, (_, i) => currentYear - 20 + i).map(year => (
+                                        <TouchableOpacity
+                                            key={year}
+                                            style={[
+                                                styles.yearCell,
+                                                year === currentYear && styles.selectedYearCell
+                                            ]}
+                                            onPress={() => {
+                                                setCurrentDate(new Date(year, currentMonth, 1));
+                                                setShowYearPicker(false);
+                                            }}
+                                        >
+                                            <Text style={[
+                                                styles.yearText,
+                                                year === currentYear && styles.selectedYearText
+                                            ]}>{year}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </ScrollView>
+                        </View>
+                    ) : (
+                        <>
+                            <View style={styles.weekHeaders}>
+                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                    <Text key={day} style={styles.weekHeaderText}>{day}</Text>
+                                ))}
+                            </View>
+                            <View style={styles.calendarGrid}>
+                                {renderCalendar()}
+                            </View>
+                        </>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -186,6 +247,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
+    },
+    navRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    navBtn: {
+        padding: 4,
     },
     monthTitle: {
         color: colors.text,
@@ -231,5 +299,30 @@ const styles = StyleSheet.create({
     },
     disabledDayText: {
         color: colors.textSecondary,
+    },
+    yearGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        padding: 8,
+    },
+    yearCell: {
+        width: '30%',
+        padding: 12,
+        marginBottom: 12,
+        borderRadius: 12,
+        backgroundColor: '#2C2C2E',
+        alignItems: 'center',
+    },
+    selectedYearCell: {
+        backgroundColor: colors.primary,
+    },
+    yearText: {
+        color: colors.text,
+        fontSize: 16,
+    },
+    selectedYearText: {
+        color: colors.background,
+        fontWeight: 'bold',
     },
 });
