@@ -4,18 +4,22 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { getLocalDateString } from '../utils/dateUtils';
 import { Habit } from '../types';
+import LogTimeModal from './LogTimeModal';
 
 interface HabitDetailModalProps {
     visible: boolean;
     onClose: () => void;
     habit: Habit | null;
     onToggleDate: (habitId: string, date: string) => void;
+    onSaveProgress?: (habitId: string, date: string, minutes: number) => void;
     initialDate?: string;
 }
 
-export default function HabitDetailModal({ visible, onClose, habit, onToggleDate, initialDate }: HabitDetailModalProps) {
+export default function HabitDetailModal({ visible, onClose, habit, onToggleDate, onSaveProgress, initialDate }: HabitDetailModalProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showYearPicker, setShowYearPicker] = useState(false);
+    const [logTimeVisible, setLogTimeVisible] = useState(false);
+    const [selectedLogDate, setSelectedLogDate] = useState<string | null>(null);
 
     React.useEffect(() => {
         if (visible) {
@@ -71,7 +75,21 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
     const toggleDate = (day: number) => {
         const date = new Date(currentYear, currentMonth, day);
         const dateStr = getLocalDateString(date);
-        onToggleDate(habit.id, dateStr);
+
+        if (habit.type === 'time') {
+            setSelectedLogDate(dateStr);
+            setLogTimeVisible(true);
+        } else {
+            onToggleDate(habit.id, dateStr);
+        }
+    };
+
+    const handleSaveTime = (minutes: number) => {
+        if (selectedLogDate && onSaveProgress) {
+            onSaveProgress(habit.id, selectedLogDate, minutes);
+        }
+        setLogTimeVisible(false);
+        setSelectedLogDate(null);
     };
 
     const renderCalendar = () => {
@@ -94,6 +112,7 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
 
                     const isFuture = dateStr > todayStr;
                     const completed = isCompleted(day);
+                    const progress = habit.progress?.[dateStr];
 
                     rowItems.push(
                         <TouchableOpacity
@@ -113,6 +132,14 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
                             ]}>
                                 {day}
                             </Text>
+                            {habit.type === 'time' && progress !== undefined && (
+                                <Text style={[
+                                    styles.progressText,
+                                    completed && { color: 'rgba(0,0,0,0.6)' }
+                                ]}>
+                                    {Math.round(progress / 60 * 10) / 10}h
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     );
                     dayCounter++;
@@ -214,6 +241,12 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
                     )}
                 </View>
             </View>
+            <LogTimeModal
+                visible={logTimeVisible}
+                onClose={() => setLogTimeVisible(false)}
+                onSave={handleSaveTime}
+                initialValue={selectedLogDate && habit.progress?.[selectedLogDate] ? habit.progress[selectedLogDate] : 0}
+            />
         </Modal>
     );
 }
@@ -299,6 +332,11 @@ const styles = StyleSheet.create({
     },
     disabledDayText: {
         color: colors.textSecondary,
+    },
+    progressText: {
+        fontSize: 8,
+        color: colors.textSecondary,
+        marginTop: -2,
     },
     yearGrid: {
         flexDirection: 'row',

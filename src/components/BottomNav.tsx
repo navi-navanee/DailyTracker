@@ -15,38 +15,38 @@ export default function BottomNav({ activeTab, onTabPress }: BottomNavProps) {
     <View style={styles.container}>
       <View style={styles.pillContainer}>
         <TouchableOpacity
-          testID="tab-home"
-          style={[styles.btn, activeTab === 'Home' && styles.activeBtn]}
-          onPress={() => onTabPress('Home')}
+          testID="tab-time"
+          style={[styles.btn, activeTab === 'Time' && styles.activeBtn]}
+          onPress={() => onTabPress('Time')}
         >
           <Ionicons
-            name="time-outline"
+            name="timer-outline"
             size={24}
-            color={activeTab === 'Home' ? "black" : "#666"}
+            color={activeTab === 'Time' ? "black" : "#666"}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
-          testID="tab-grid"
-          style={[styles.btn, activeTab === 'Grid' && styles.activeBtn]}
-          onPress={() => onTabPress('Grid')}
+          testID="tab-checkmark"
+          style={[styles.btn, activeTab === 'Checkmark' && styles.activeBtn]}
+          onPress={() => onTabPress('Checkmark')}
         >
           <Ionicons
-            name="grid-outline"
+            name="checkmark-circle-outline"
             size={24}
-            color={activeTab === 'Grid' ? "black" : "#666"}
+            color={activeTab === 'Checkmark' ? "black" : "#666"}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
-          testID="tab-menu"
-          style={[styles.btn, activeTab === 'Menu' && styles.activeBtn]}
-          onPress={() => onTabPress('Menu')}
+          testID="tab-combined"
+          style={[styles.btn, activeTab === 'Combined' && styles.activeBtn]}
+          onPress={() => onTabPress('Combined')}
         >
           <Ionicons
-            name="options-outline"
+            name="layers-outline"
             size={24}
-            color={activeTab === 'Menu' ? "black" : "#666"}
+            color={activeTab === 'Combined' ? "black" : "#666"}
           />
         </TouchableOpacity>
       </View>

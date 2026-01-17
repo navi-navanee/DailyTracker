@@ -22,6 +22,7 @@ import CalendarStrip from '../components/CalendarStrip';
 import BottomNav from '../components/BottomNav';
 
 import HabitGridItem from '../components/HabitGridItem';
+import HabitWeeklyItem from '../components/HabitWeeklyItem';
 import HabitOptionsModal from '../components/HabitOptionsModal';
 import HabitDetailModal from '../components/HabitDetailModal';
 
@@ -33,7 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const [habits, setHabits] = useState<Habit[]>([]);
   /* ... existing code ... */
-  const [activeTab, setActiveTab] = useState('Grid'); // Default to Grid based on screenshot flow
+  const [activeTab, setActiveTab] = useState('Time'); // Default to Time tab
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [menuVisible, setMenuVisible] = useState(false);
@@ -97,6 +98,76 @@ export default function HomeScreen({ navigation }: Props) {
     await updateHabitInStorage(updatedHabit);
   };
 
+  const toggleHabitDate = async (habitId: string, date: string) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const isCompleted = habit.completedDates.some(d => d.startsWith(date));
+    let newCompletedDates;
+
+    if (isCompleted) {
+      newCompletedDates = habit.completedDates.filter(d => !d.startsWith(date));
+    } else {
+      newCompletedDates = [...habit.completedDates, date];
+    }
+
+    const newStreak = calculateStreak(newCompletedDates);
+    const updatedHabit = {
+      ...habit,
+      completedDates: newCompletedDates,
+      streak: newStreak
+    };
+
+    setHabits(prev => prev.map(h => h.id === habitId ? updatedHabit : h));
+    await updateHabitInStorage(updatedHabit);
+
+    // update detailHabit if it's the one currently being viewed
+    if (detailHabit && detailHabit.id === habitId) {
+      setDetailHabit(updatedHabit);
+    }
+  };
+
+  const updateHabitProgress = async (habitId: string, date: string, minutes: number) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const newProgress = { ...habit.progress, [date]: minutes };
+
+    // Logic: if minutes > 0, ensure it's in completedDates ?? 
+    // Or maybe keep completed logic separate from progress?
+    // User probably wants "completed" if they logged any time, or maybe if they met a target?
+    // For now, let's say if minutes > 0, it is "completed" for that day.
+
+    let newCompletedDates = habit.completedDates;
+    const isCompleted = newCompletedDates.some(d => d.startsWith(date));
+
+    if (minutes > 0) {
+      if (!isCompleted) {
+        newCompletedDates = [...newCompletedDates, date];
+      }
+    } else {
+      // If 0 minutes, maybe remove completion?
+      if (isCompleted) {
+        newCompletedDates = newCompletedDates.filter(d => !d.startsWith(date));
+      }
+    }
+
+    const newStreak = calculateStreak(newCompletedDates);
+    const updatedHabit = {
+      ...habit,
+      progress: newProgress,
+      completedDates: newCompletedDates,
+      streak: newStreak
+    };
+
+    setHabits(prev => prev.map(h => h.id === habitId ? updatedHabit : h));
+    await updateHabitInStorage(updatedHabit);
+
+    if (detailHabit && detailHabit.id === habitId) {
+      setDetailHabit(updatedHabit);
+    }
+  };
+
   const handleOpenMenu = (habit: Habit, position: { x: number, y: number }) => {
     setSelectedHabitId(habit.id);
     setMenuPosition(position);
@@ -145,10 +216,18 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const renderContent = () => {
-    // Filter habits based on selected categories
-    const filteredHabits = selectedCategories.length > 0
+    // Filter habits based on selected categories first
+    let filtered = selectedCategories.length > 0
       ? habits.filter(h => h.categories && h.categories.some(c => selectedCategories.includes(c)))
       : habits;
+
+    // Then filter based on active tab
+    if (activeTab === 'Time') {
+      filtered = filtered.filter(h => h.type === 'time');
+    } else if (activeTab === 'Checkmark') {
+      filtered = filtered.filter(h => h.type === 'checkmark' || !h.type); // Default to checkmark if undefined
+    }
+    // 'Combined' shows all (no additional filtering)
 
     if (habits.length === 0) {
       return (
@@ -165,12 +244,19 @@ export default function HomeScreen({ navigation }: Props) {
       );
     }
 
-    if (activeTab === 'Grid') {
-      return (
-        <FlatList
-          data={filteredHabits}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
+    return (
+      <FlatList
+        data={filtered}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          activeTab === 'Combined' ? (
+            <HabitWeeklyItem
+              habit={item}
+              onToggleDate={toggleHabitDate}
+              onLongPress={() => handleDelete(item.id)}
+              onMenuPress={handleOpenMenu}
+            />
+          ) : (
             <HabitGridItem
               habit={item}
               onToggle={toggleHabit}
@@ -182,23 +268,7 @@ export default function HomeScreen({ navigation }: Props) {
                 setDetailModalVisible(true);
               }}
             />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      );
-    }
-
-    // Default 'Home' view or other tabs
-    return (
-      <FlatList
-        data={filteredHabits}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <HabitItem
-            habit={item}
-            onToggle={toggleHabit}
-            onLongPress={() => handleDelete(item.id)}
-          />
+          )
         )}
         contentContainerStyle={styles.listContent}
       />
@@ -220,7 +290,14 @@ export default function HomeScreen({ navigation }: Props) {
         >
           {/* 'All' or default option could be added if needed, or just let users deselect */}
           {/* Reviewing the screenshot, user had 'Finances', 'Fitness'. Let's show unique categories from habits */}
-          {[...new Set(habits.flatMap(h => h.categories || []))].map((cat, index) => {
+          {[...new Set(
+            (activeTab === 'Combined'
+              ? habits
+              : activeTab === 'Time'
+                ? habits.filter(h => h.type === 'time')
+                : habits.filter(h => h.type === 'checkmark' || !h.type)
+            ).flatMap(h => h.categories || [])
+          )].map((cat, index) => {
             const isSelected = selectedCategories.includes(cat);
             return (
               <TouchableOpacity
@@ -270,34 +347,8 @@ export default function HomeScreen({ navigation }: Props) {
         onClose={() => setDetailModalVisible(false)}
         habit={detailHabit}
         initialDate={selectedDate ?? undefined}
-        onToggleDate={(habitId, date) => {
-          // Re-using toggle logic but for specific date
-          const habit = habits.find(h => h.id === habitId);
-          if (!habit) return;
-
-          // date here is already YYYY-MM-DD from modal
-          const isCompleted = habit.completedDates.some(d => d.startsWith(date));
-          let newCompletedDates;
-
-          if (isCompleted) {
-            newCompletedDates = habit.completedDates.filter(d => !d.startsWith(date));
-          } else {
-            newCompletedDates = [...habit.completedDates, date];
-          }
-
-          const newStreak = calculateStreak(newCompletedDates);
-          const updatedHabit = {
-            ...habit,
-            completedDates: newCompletedDates,
-            streak: newStreak
-          };
-
-          setHabits(prev => prev.map(h => h.id === habitId ? updatedHabit : h));
-          updateHabitInStorage(updatedHabit);
-
-          // Update the detailHabit as well so the modal refreshes
-          setDetailHabit(updatedHabit);
-        }}
+        onToggleDate={toggleHabitDate}
+        onSaveProgress={updateHabitProgress}
       />
     </SafeAreaView>
   );

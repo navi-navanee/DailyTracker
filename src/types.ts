@@ -7,6 +7,7 @@ export interface Habit {
   streak?: number;
   type?: string;
   hasTarget?: boolean;
+  progress?: Record<string, number>;
   completedDates: string[];
   createdAt?: string;
   reminders?: { id: string, time: string, isEnabled: boolean, days: string, notificationId?: string }[];
