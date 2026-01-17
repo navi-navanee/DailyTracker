@@ -47,7 +47,7 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderColor: habit.color || '#333' }]}>
 
 
 
