@@ -103,6 +103,15 @@ export default function HomeScreen({ navigation }: Props) {
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return;
 
+    // Handle Time Habits: Open Log Time Modal instead of toggling
+    if (habit.type === 'time') {
+      setDetailHabit(habit);
+      setSelectedDate(date);
+      setAutoOpenLogTime(true);
+      setDetailModalVisible(true);
+      return;
+    }
+
     const isCompleted = habit.completedDates.some(d => d.startsWith(date));
     let newCompletedDates;
 

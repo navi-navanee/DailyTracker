@@ -96,6 +96,11 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
         }
         setLogTimeVisible(false);
         setSelectedLogDate(null);
+
+        // If we opened this automatically (Quick Log), close the parent modal too
+        if (autoOpenLogTime) {
+            onClose();
+        }
     };
 
     const renderCalendar = () => {
@@ -250,7 +255,12 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
             <LogTimeModal
                 key={selectedLogDate || 'hidden'}
                 visible={logTimeVisible}
-                onClose={() => setLogTimeVisible(false)}
+                onClose={() => {
+                    setLogTimeVisible(false);
+                    if (autoOpenLogTime) {
+                        onClose();
+                    }
+                }}
                 onSave={handleSaveTime}
                 initialValue={selectedLogDate && habit.progress?.[selectedLogDate] ? habit.progress[selectedLogDate] : 0}
             />

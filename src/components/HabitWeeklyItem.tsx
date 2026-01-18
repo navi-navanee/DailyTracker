@@ -115,7 +115,17 @@ export default function HabitWeeklyItem({ habit, onToggleDate, onLongPress, onMe
                                     isToday && !completed && { borderColor: '#fff' }, // Highlight today
                                 ]}
                             >
-                                {completed && <Ionicons name="checkmark" size={20} color="#000" />}
+                                {habit.type === 'time' ? (
+                                    completed && (
+                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
+                                            {habit.progress?.[dateStr]
+                                                ? (habit.progress[dateStr] / 60).toFixed(1) + 'h'
+                                                : ''}
+                                        </Text>
+                                    )
+                                ) : (
+                                    completed && <Ionicons name="checkmark" size={20} color="#000" />
+                                )}
                             </TouchableOpacity>
                         </View>
                     );
