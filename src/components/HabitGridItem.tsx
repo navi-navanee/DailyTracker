@@ -16,9 +16,10 @@ interface HabitGridItemProps {
 interface HabitGridItemExtendedProps extends HabitGridItemProps {
   onMenuPress?: (habit: Habit, position: { x: number, y: number }) => void;
   onGridPress?: (habit: Habit, date?: string) => void;
+  onAddLog?: (habit: Habit) => void;
 }
 
-export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress, onGridPress }: HabitGridItemExtendedProps) {
+export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPress, onGridPress, onAddLog }: HabitGridItemExtendedProps) {
   const moreRef = React.useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const today = new Date();
@@ -236,9 +237,19 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
           <TouchableOpacity
             testID={`grid-check-btn-${habit.id}`}
             style={[styles.checkBtn, isCompletedToday && styles.checkedBtn]}
-            onPress={() => onToggle(habit.id)}
+            onPress={() => {
+              if (habit.type === 'time' && onAddLog) {
+                onAddLog(habit);
+              } else {
+                onToggle(habit.id);
+              }
+            }}
           >
-            <MaterialCommunityIcons name="check" size={20} color={isCompletedToday ? colors.black : colors.textSecondary} />
+            <MaterialCommunityIcons
+              name={habit.type === 'time' ? "plus" : "check"}
+              size={24}
+              color={isCompletedToday ? colors.black : colors.textSecondary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             ref={moreRef}

@@ -13,9 +13,10 @@ interface HabitDetailModalProps {
     onToggleDate: (habitId: string, date: string) => void;
     onSaveProgress?: (habitId: string, date: string, minutes: number) => void;
     initialDate?: string;
+    autoOpenLogTime?: boolean;
 }
 
-export default function HabitDetailModal({ visible, onClose, habit, onToggleDate, onSaveProgress, initialDate }: HabitDetailModalProps) {
+export default function HabitDetailModal({ visible, onClose, habit, onToggleDate, onSaveProgress, initialDate, autoOpenLogTime }: HabitDetailModalProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showYearPicker, setShowYearPicker] = useState(false);
     const [logTimeVisible, setLogTimeVisible] = useState(false);
@@ -28,8 +29,13 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
             } else {
                 setCurrentDate(new Date());
             }
+
+            if (autoOpenLogTime && initialDate && habit?.type === 'time') {
+                setSelectedLogDate(initialDate);
+                setLogTimeVisible(true);
+            }
         }
-    }, [visible, initialDate]);
+    }, [visible, initialDate, autoOpenLogTime]);
 
     if (!habit) return null;
 

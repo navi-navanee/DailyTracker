@@ -44,6 +44,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailHabit, setDetailHabit] = useState<Habit | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [autoOpenLogTime, setAutoOpenLogTime] = useState(false);
 
   const loadHabits = async () => {
     const loadedHabits = await getHabits();
@@ -265,6 +266,13 @@ export default function HomeScreen({ navigation }: Props) {
               onGridPress={(habit, date) => {
                 setDetailHabit(habit);
                 setSelectedDate(date || null);
+                setAutoOpenLogTime(false); // Normal open
+                setDetailModalVisible(true);
+              }}
+              onAddLog={(habit) => {
+                setDetailHabit(habit);
+                setSelectedDate(getLocalDateString(new Date())); // Today
+                setAutoOpenLogTime(true); // Auto open log
                 setDetailModalVisible(true);
               }}
             />
@@ -349,6 +357,7 @@ export default function HomeScreen({ navigation }: Props) {
         initialDate={selectedDate ?? undefined}
         onToggleDate={toggleHabitDate}
         onSaveProgress={updateHabitProgress}
+        autoOpenLogTime={autoOpenLogTime}
       />
     </SafeAreaView>
   );
