@@ -8,7 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "make-test": "node scripts/generate-test.js"
+    "make-test": "node scripts/generate-test.js",
+    "build:web": "expo export -p web"
   },
   "jest": {
     "preset": "jest-expo",

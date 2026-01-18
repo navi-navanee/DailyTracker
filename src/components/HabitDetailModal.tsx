@@ -242,6 +242,7 @@ export default function HabitDetailModal({ visible, onClose, habit, onToggleDate
                 </View>
             </View>
             <LogTimeModal
+                key={selectedLogDate || 'hidden'}
                 visible={logTimeVisible}
                 onClose={() => setLogTimeVisible(false)}
                 onSave={handleSaveTime}

@@ -261,46 +261,48 @@ export default function LogTimeModal({ visible, onClose, onSave, initialValue = 
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.header}>
-                        <View style={styles.headerTitleContainer}>
-                            <Ionicons name="time-outline" size={24} color={colors.primaryGreen} />
-                            <Text style={styles.title}>Log Time</Text>
+            {visible && (
+                <View style={styles.overlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.header}>
+                            <View style={styles.headerTitleContainer}>
+                                <Ionicons name="time-outline" size={24} color={colors.primaryGreen} />
+                                <Text style={styles.title}>Log Time</Text>
+                            </View>
+                            <TouchableOpacity onPress={onClose}>
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color={colors.text} />
+
+                        <View style={styles.tabs}>
+                            {(['Manual', 'Stopwatch', 'Countdown'] as Tab[]).map(tab => (
+                                <TouchableOpacity
+                                    key={tab}
+                                    style={[styles.tab, activeTab === tab && styles.activeTab]}
+                                    onPress={() => setActiveTab(tab)}
+                                >
+                                    <Ionicons
+                                        name={tab === 'Manual' ? 'create-outline' : tab === 'Stopwatch' ? 'stopwatch-outline' : 'hourglass-outline'}
+                                        size={16}
+                                        color={activeTab === tab ? 'black' : colors.textSecondary}
+                                    />
+                                    <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {activeTab === 'Manual' && renderManualTab()}
+                        {activeTab === 'Stopwatch' && renderStopwatchTab()}
+                        {activeTab === 'Countdown' && renderCountdownTab()}
+
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                            <Text style={styles.saveButtonText}>
+                                <Ionicons name="checkmark" size={20} color="black" /> Log Time
+                            </Text>
                         </TouchableOpacity>
                     </View>
-
-                    <View style={styles.tabs}>
-                        {(['Manual', 'Stopwatch', 'Countdown'] as Tab[]).map(tab => (
-                            <TouchableOpacity
-                                key={tab}
-                                style={[styles.tab, activeTab === tab && styles.activeTab]}
-                                onPress={() => setActiveTab(tab)}
-                            >
-                                <Ionicons
-                                    name={tab === 'Manual' ? 'create-outline' : tab === 'Stopwatch' ? 'stopwatch-outline' : 'hourglass-outline'}
-                                    size={16}
-                                    color={activeTab === tab ? 'black' : colors.textSecondary}
-                                />
-                                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    {activeTab === 'Manual' && renderManualTab()}
-                    {activeTab === 'Stopwatch' && renderStopwatchTab()}
-                    {activeTab === 'Countdown' && renderCountdownTab()}
-
-                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>
-                            <Ionicons name="checkmark" size={20} color="black" /> Log Time
-                        </Text>
-                    </TouchableOpacity>
                 </View>
-            </View>
+            )}
         </Modal>
     );
 }
@@ -368,6 +370,7 @@ const styles = StyleSheet.create({
     timeInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center', // Ensure centering
         gap: 16,
         marginBottom: 24,
     },

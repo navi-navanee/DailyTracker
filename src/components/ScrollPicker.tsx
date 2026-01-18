@@ -1,7 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, FlatList, Dimensions, Platform } from 'react-native';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, FlatList, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
-
 
 interface ScrollPickerProps {
     items: string[];
@@ -21,57 +20,110 @@ export default function ScrollPicker({
     const flatListRef = useRef<FlatList>(null);
     const [isScrolling, setIsScrolling] = useState(false);
 
+    // We use a ref to track if we are currently handling a user interaction
+    // to prevent the useEffect from interfering.
+    const isUserInteracting = useRef(false);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
     // Calculate container height
     const height = itemHeight * visibleItems;
 
     // Add padding items so the first and last items can be centered
-    // For visibleItems=3, we need 1 empty item at top (index 0) and 1 at bottom.
-    // The "real" items start at index 1.
     const paddingCount = Math.floor(visibleItems / 2);
-    const data = [
+    // Memoize data to prevent unnecessary re-rendering
+    const data = useMemo(() => [
         ...Array(paddingCount).fill(''),
         ...items,
         ...Array(paddingCount).fill('')
-    ];
+    ], [items, paddingCount]);
 
     useEffect(() => {
-        // Scroll to initial value on mount or when value changes externally (if not scrolling)
-        if (!isScrolling) {
+        if (!isUserInteracting.current) {
             const index = items.indexOf(selectedValue);
             if (index !== -1 && flatListRef.current) {
-                // We need to wait a tick for layout sometimes, but scrollToIndex works on data index
-                // Our data has padding. The item at `index` in `items` is at `index + paddingCount` in `data`.
-                // snapToOffsets logic matches pixels.
-                // Actually scrollToOffset is safer.
                 setTimeout(() => {
                     flatListRef.current?.scrollToOffset({
                         offset: index * itemHeight,
-                        animated: false // Initial render instant
+                        animated: false
                     });
                 }, 50);
             }
         }
-    }, [selectedValue]);
+    }, [selectedValue, items, itemHeight]);
 
-    const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        setIsScrolling(false);
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         const index = Math.round(offsetY / itemHeight);
-
-        // Clamp index
         const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
-
         const newValue = items[clampedIndex];
+
         if (newValue !== selectedValue) {
             onValueChange(newValue);
         }
     };
 
-    const getItemLayout = (_: any, index: number) => ({
+    const handleScrollBeginDrag = () => {
+        isUserInteracting.current = true;
+        setIsScrolling(true);
+    };
+
+    const handleScrollEndDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            isUserInteracting.current = false;
+            setIsScrolling(false);
+        }, 100);
+    };
+
+    const handleMomentumScrollBegin = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        isUserInteracting.current = true;
+        setIsScrolling(true);
+    };
+
+    const handleMomentumScrollEnd = () => {
+        isUserInteracting.current = false;
+        setIsScrolling(false);
+    };
+
+    const getItemLayout = useCallback((_: any, index: number) => ({
         length: itemHeight,
         offset: itemHeight * index,
         index,
-    });
+    }), [itemHeight]);
+
+    const handleItemPress = useCallback((item: string) => {
+        if (!item) return;
+        const index = items.indexOf(item);
+        if (index !== -1) {
+            onValueChange(item);
+            isUserInteracting.current = true;
+            flatListRef.current?.scrollToOffset({
+                offset: index * itemHeight,
+                animated: true
+            });
+            setTimeout(() => {
+                isUserInteracting.current = false;
+            }, 500);
+        }
+    }, [items, itemHeight, onValueChange]);
+
+    const renderItem = useCallback(({ item }: { item: string }) => {
+        if (item === '') {
+            return <View style={{ height: itemHeight }} />;
+        }
+        return (
+            <TouchableOpacity
+                style={[styles.item, { height: itemHeight }]}
+                onPress={() => handleItemPress(item)}
+                activeOpacity={0.7}
+            >
+                <Text style={styles.text}>
+                    {item}
+                </Text>
+            </TouchableOpacity>
+        );
+    }, [itemHeight, handleItemPress]);
 
     return (
         <View style={[styles.container, { height }]}>
@@ -88,38 +140,22 @@ export default function ScrollPicker({
                 ref={flatListRef}
                 data={data}
                 keyExtractor={(item, index) => `${index}-${item}`}
-                renderItem={({ item, index }) => {
-                    // Logic to determine opacity/scale based on distance from center is hard in plain FlatList without Reanimated.
-                    // We will stick to simple highlighting via the overlay and text color if possible?
-                    // Actually, let's just render. The highlight view provides the visual cue.
-
-                    // We can check if this item is the selected one to bold it?
-                    // But scrolling is controlled by parent state often lagging.
-                    // Let's just keep it simple.
-
-                    if (item === '') {
-                        return <View style={{ height: itemHeight }} />;
-                    }
-
-                    const isSelected = item === selectedValue;
-
-                    return (
-                        <View style={[styles.item, { height: itemHeight }]}>
-                            <Text style={[
-                                styles.text,
-                                isSelected && styles.selectedText
-                            ]}>
-                                {item}
-                            </Text>
-                        </View>
-                    );
-                }}
+                renderItem={renderItem}
                 getItemLayout={getItemLayout}
+                initialScrollIndex={
+                    items.indexOf(selectedValue) !== -1
+                        ? items.indexOf(selectedValue)
+                        : undefined
+                }
                 showsVerticalScrollIndicator={false}
                 snapToInterval={itemHeight}
                 decelerationRate="fast"
+                onScroll={handleScroll}
+                scrollEventThrottle={16} // Live updates
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onScrollEndDrag={handleScrollEndDrag}
+                onMomentumScrollBegin={handleMomentumScrollBegin}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
-                onScrollBeginDrag={() => setIsScrolling(true)}
             />
         </View>
     );
@@ -127,13 +163,14 @@ export default function ScrollPicker({
 
 const styles = StyleSheet.create({
     container: {
-        width: 80,
+        width: 60,
         backgroundColor: 'transparent',
         overflow: 'hidden',
     },
     item: {
         justifyContent: 'center',
         alignItems: 'center',
+        width: '100%',
     },
     text: {
         fontSize: 24,

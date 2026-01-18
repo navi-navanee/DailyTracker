@@ -23,8 +23,20 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
   const scrollViewRef = React.useRef<ScrollView>(null);
   const today = new Date();
 
-  // Generate date range based on history
+  // Helper to get start of week (Monday)
+  const getStartOfWeek = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+  };
+
+  // Generate date range based on history (Standard Heatmap)
   const weeks = React.useMemo(() => {
+    // ... (Keep existing logic for standard heatmap if needed, or we can separate)
+    // For now, let's keep the logic for standard heatmap but wrapped or just unused if time grid
+    // Actually, let's just leave it as is for non-time habits
+
     // Find earliest completion date
     let earliestDate = new Date();
     if (habit.completedDates && habit.completedDates.length > 0) {
@@ -34,27 +46,18 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
       });
     }
 
-    // Default to at least 52 weeks (1 year) ago, or earlier if data exists
+    // Default to at least 52 weeks ago
     const minWeeks = 52;
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     const weeksDiff = Math.ceil((today.getTime() - earliestDate.getTime()) / msPerWeek);
-    const totalWeeks = Math.max(minWeeks, weeksDiff + 1); // +1 buffer
+    const totalWeeks = Math.max(minWeeks, weeksDiff + 1);
 
     const result = [];
+    const currentWeekMonday = getStartOfWeek(today);
 
-    // Calculate the Monday of the current week (standard Mon-Sun)
-    const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const currentWeekMonday = new Date(today);
-    currentWeekMonday.setDate(today.getDate() + diffToMonday);
-
-    // Generate weeks from past to present
     for (let w = 0; w < totalWeeks; w++) {
       const weekDates = [];
       const mondayOfThisWeek = new Date(currentWeekMonday);
-      // We go backwards from current week, but we want the array to be ordered Past -> Future ?
-      // No, usually we generate Past -> Future 
-      // Let's generate from (totalWeeks - 1) weeks ago up to 0 weeks ago
       mondayOfThisWeek.setDate(currentWeekMonday.getDate() - (totalWeeks - 1 - w) * 7);
 
       for (let d = 0; d < 7; d++) {
@@ -65,7 +68,36 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
       result.push(weekDates);
     }
     return result;
-  }, [habit.completedDates]); // Re-calc when completedDates change
+  }, [habit.completedDates]);
+
+  // Generate LAST 7 WEEKS for Time Grid
+  const timeGridData = React.useMemo(() => {
+    if (habit.type !== 'time') return null;
+
+    const result = [];
+    const currentWeekMonday = getStartOfWeek(today);
+
+    // Generate last 7 weeks (current week + 6 previous weeks)
+    // Order: Oldest week -> Current week (Left to Right)
+    for (let w = 6; w >= 0; w--) {
+      const weekMonday = new Date(currentWeekMonday);
+      weekMonday.setDate(currentWeekMonday.getDate() - (w * 7));
+
+      const weekDays = [];
+      let weekTotal = 0;
+
+      for (let d = 0; d < 7; d++) {
+        const dayDate = new Date(weekMonday);
+        dayDate.setDate(weekMonday.getDate() + d);
+        const dateStr = getLocalDateString(dayDate);
+        const val = habit.progress?.[dateStr] || 0;
+        weekTotal += val;
+        weekDays.push({ date: dateStr, value: val });
+      }
+      result.push({ days: weekDays, total: weekTotal });
+    }
+    return result;
+  }, [habit.progress, habit.type]);
 
   const isCompleted = (dateStr: string) => {
     return habit.completedDates.some(d => d.startsWith(dateStr));
@@ -73,6 +105,107 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
 
   const todayStr = getLocalDateString(today);
   const isCompletedToday = isCompleted(todayStr);
+
+  const renderStandardHeatmap = () => (
+    <View style={styles.heatmapWrapper}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.heatmapContainer}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+      >
+        {weeks.map((week, wIndex) => (
+          <View key={wIndex} style={styles.weekColumn}>
+            {week.map((dateStr, dIndex) => {
+              const completed = isCompleted(dateStr);
+              return (
+                <TouchableOpacity
+                  key={dateStr}
+                  activeOpacity={0.7}
+                  onPress={() => onGridPress && onGridPress(habit, dateStr)}
+                  style={[
+                    styles.dayBox,
+                    completed && { backgroundColor: habit.color || colors.primary },
+                    dateStr === todayStr && !completed && { borderWidth: 1, borderColor: '#555' }
+                  ]}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderTimeGrid = () => {
+    if (!timeGridData) return null;
+
+    const rowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Total'];
+
+    return (
+      <View style={styles.timeGridWrapper}>
+        {/* Row Labels Column */}
+        <View style={styles.timeGridLabelsColumn}>
+          {rowLabels.map((label, index) => (
+            <View key={label} style={[styles.timeGridCell, styles.labelCell]}>
+              <Text style={[
+                styles.labelText,
+                label === 'Total' && styles.totalLabelText,
+                // Highlight "Total" row slightly
+              ]}>{label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Data Columns */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.timeGridScrollContent}
+        >
+          {timeGridData.map((week, wIndex) => (
+            <View key={wIndex} style={styles.timeGridColumn}>
+              {week.days.map((day, dIndex) => {
+                const isToday = day.date === todayStr;
+                const hasValue = day.value > 0;
+
+                return (
+                  <TouchableOpacity
+                    key={day.date}
+                    activeOpacity={0.7}
+                    onPress={() => onGridPress && onGridPress(habit, day.date)}
+                    style={[
+                      styles.timeGridCell,
+                      styles.dataCell,
+                      hasValue && { backgroundColor: (habit.color || colors.primary) + '40' }, // 40 = 25% opacity approx
+                      hasValue && { borderColor: habit.color || colors.primary, borderWidth: 1 },
+                      isToday && !hasValue && { borderWidth: 1, borderColor: colors.white }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.cellValueText,
+                      hasValue ? { color: colors.white, fontWeight: 'bold' } : { color: colors.textSecondary }
+                    ]}>
+                      {(day.value / 60).toFixed(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {/* Weekly Total Cell */}
+              <View style={[
+                styles.timeGridCell,
+                styles.totalCell,
+                week.total > 0 ? { backgroundColor: (habit.color || colors.primary) } : { backgroundColor: '#2C2C2E' }
+              ]}>
+                <Text style={styles.totalValueText}>{(week.total / 60).toFixed(1)}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { borderColor: habit.color || '#333' }]}>
@@ -125,37 +258,9 @@ export default function HabitGridItem({ habit, onToggle, onLongPress, onMenuPres
         </View>
       </View>
 
-      {/* Heatmap Grid: Scrollable Columns of Weeks */}
-      <View style={styles.heatmapWrapper}>
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.heatmapContainer}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
-        >
-          {weeks.map((week, wIndex) => (
-            <View key={wIndex} style={styles.weekColumn}>
-              {week.map((dateStr, dIndex) => {
-                const completed = isCompleted(dateStr);
-                return (
-                  <TouchableOpacity
-                    key={dateStr}
-                    activeOpacity={0.7}
-                    onPress={() => onGridPress && onGridPress(habit, dateStr)}
-                    style={[
-                      styles.dayBox,
-                      completed && { backgroundColor: habit.color || colors.primary },
-                      // Highlight today 
-                      dateStr === todayStr && !completed && { borderWidth: 1, borderColor: '#555' }
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Render the appropriate grid based on habit type */}
+      {habit.type === 'time' ? renderTimeGrid() : renderStandardHeatmap()}
+
     </View>
   );
 }
@@ -224,18 +329,71 @@ const styles = StyleSheet.create({
     height: 110, // Approx height for grid + padding
   },
   heatmapContainer: {
-    paddingRight: 10, // Adding padding to the right end
+    paddingRight: 10,
     flexGrow: 1,
     justifyContent: 'flex-end',
   },
   weekColumn: {
     gap: 3,
-    marginRight: 3, // Space between columns
+    marginRight: 3,
   },
   dayBox: {
     width: 12,
     height: 12,
     borderRadius: 2,
     backgroundColor: '#2C2C2E',
+  },
+
+  // Time Grid Styles
+  timeGridWrapper: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  timeGridLabelsColumn: {
+    width: 40,
+    marginRight: 8,
+    gap: 4,
+  },
+  timeGridScrollContent: {
+    gap: 4,
+    paddingRight: 16,
+  },
+  timeGridColumn: {
+    gap: 4,
+  },
+  timeGridCell: {
+    width: 45,
+    height: 25,
+    borderRadius: 4,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  labelCell: {
+    width: 40,
+    backgroundColor: 'transparent',
+    alignItems: 'flex-start',
+  },
+  labelText: {
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  totalLabelText: {
+    color: colors.text,
+    fontWeight: 'bold',
+  },
+  dataCell: {
+    // defaults
+  },
+  totalCell: {
+    // highlighted background set inline
+  },
+  cellValueText: {
+    fontSize: 10,
+  },
+  totalValueText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
