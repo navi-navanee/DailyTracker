@@ -310,7 +310,7 @@ export default function LogTimeModal({ visible, onClose, onSave, initialValue = 
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.2)',
         justifyContent: 'center',
         padding: 20,
     },
